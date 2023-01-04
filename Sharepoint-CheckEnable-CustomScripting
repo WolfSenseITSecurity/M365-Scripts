@@ -1,0 +1,56 @@
+# Check if the Microsoft.Online.Sharepoint.Powershell module is installed, and install it if necessary
+if (!(Get-Module -Name Microsoft.Online.Sharepoint.Powershell)) {
+  Install-Module -Name Microsoft.Online.Sharepoint.Powershell -Force
+}
+ 
+# vraag naar de naam van de tenant 
+$tenantName = Read-Host -Prompt "Vul het begin van de tenant naam in (de naam dat voor -adminsharepoint.com komt"
+
+# Voeg https:// toe voor het admin URL
+$adminUrl = "https://${tenantName}-admin.sharepoint.com"
+
+# Connect met SharePoint admin center
+Connect-SPOService -Url $adminUrl
+ 
+# Vraag een lijst op van alle site in de tenan
+$SiteUrls = Get-SPOSite -Limit All | Select -ExpandProperty Url
+
+$FilteredSites = @()
+
+# Loop door alle $SiteUrls sites in de lijst
+foreach ($siteUrl in $SiteUrls) {
+  # Vraag meer info over de Site d.m.v. het -Detailed argument 
+  $site = Get-SPOSite -Identity $siteUrl -Detailed
+  # Check of custom-scripting uit staat
+  if (($site | Select -ExpandProperty DenyAddAndCustomizePages) -eq "Enabled") {
+    # As dit het geval i, voeg de site toe aan de array $FilteredSites
+    $FilteredSites += $site
+  }
+}
+
+# Toon de gefilterde lijst met sites in een Out-GridView-venster
+$selectedSites = $FilteredSites | Out-GridView -Title "Selecteer de Sites waar je custom-scripting op wilt aanzetten" -OutputMode Multiple    
+
+# Schakel custom-scripting in op de geselecteerde sites
+foreach ($site in $selectedSites) {
+  # Haal gedetailleerde informatie op voor de site
+  $detailedSite = Get-SPOSite -Identity $site.Url -Detailed
+  # Controleer of customs-cripting is uitgeschakeld
+  if (($detailedSite | Select -ExpandProperty DenyAddAndCustomizePages) -eq "Enabled") {
+    # Als dat zo is, schakel dan aangepaste scripting in
+    Set-SPOSite $site.Url -DenyAddAndCustomizePages 0
+    #  Haal opnieuw gedetailleerde informatie op voor de site
+    $updatedSite = Get-SPOSite -Identity $site.Url -Detailed
+    # Check of custom scripting nu wel is enabled
+    if (($updatedSite | Select -ExpandProperty DenyAddAndCustomizePages) -eq "Disabled") {
+      # Als dat zo is, toon dan het volgende bericht
+      Write-Host "Custom-scripting is aangezet voor site $($site.Url)"
+    } else {
+      # Als dat niet zo is, toon dan het volgende bericht
+      Write-Host "Custom-scripting kan niet worden aangezet...  voor $($site.Url)"
+    }
+  }
+}
+# Close the connection to the tenant
+Disconnect-SPOService
+
