@@ -1,8 +1,8 @@
-# Check if the Microsoft.Online.Sharepoint.Powershell module is installed, and install it if necessary
+# Controleer of "Microsoft.Online.Sharepoint.Powershell" module is geinstalleerd, als dit niet het geval is installeer deze
 if (!(Get-Module -Name Microsoft.Online.Sharepoint.Powershell)) {
-  Install-Module -Name Microsoft.Online.Sharepoint.Powershell -Force
+  Install-Module -Name Microsoft.Online.Sharepoint.Powershell -Force
 }
- 
+ 
 # vraag naar de naam van de tenant 
 $tenantName = Read-Host -Prompt "Vul het begin van de tenant naam in (de naam dat voor -adminsharepoint.com komt"
 
@@ -11,7 +11,7 @@ $adminUrl = "https://${tenantName}-admin.sharepoint.com"
 
 # Connect met SharePoint admin center
 Connect-SPOService -Url $adminUrl
- 
+ 
 # Vraag een lijst op van alle site in de tenan
 $SiteUrls = Get-SPOSite -Limit All | Select -ExpandProperty Url
 
@@ -51,6 +51,5 @@ foreach ($site in $selectedSites) {
     }
   }
 }
-# Close the connection to the tenant
+# Verbreek de connectie met de tenant
 Disconnect-SPOService
-
